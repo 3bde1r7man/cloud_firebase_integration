@@ -1,5 +1,6 @@
 import 'dart:ffi';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 
@@ -13,9 +14,10 @@ class ChatRoomPage extends StatefulWidget {
 }
 
 class _ChatRoomPageState extends State<ChatRoomPage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   final TextEditingController _messageController = TextEditingController();
-  final int userId = 2; // Hardcoded user ID for simplicity
+  
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +112,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         .child('channels/${widget.channelName}/messages')
         .push()
         .set({
-      'userId': userId,
+      'userId': _auth.currentUser!.uid,
       'message': message,
       'timestamp': timestamp,
     });

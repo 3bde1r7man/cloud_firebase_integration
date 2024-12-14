@@ -1,7 +1,11 @@
+import 'package:cloud_firebase_integration/Pages/sign_up.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'ChatRoomPage.dart'; // Import ChatRoomPage
+import 'package:cloud_firebase_integration/Pages/sign_up.dart'; // Import SignUpLoginPage
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,106 +14,127 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-
 class _HomePageState extends State<HomePage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _channelController = TextEditingController();
-  final int USERID = 2;
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Channels'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _signOut,
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _channelController,
-                    decoration: InputDecoration(
-                      labelText: 'Channel Name',
-                      border: OutlineInputBorder(),
-                    ),
+      body: _auth.currentUser == null ? _navigateToSignUpLoginPage() : _buildChannelScreen(),
+    );
+  }
+
+  Widget _navigateToSignUpLoginPage() {
+    Future.microtask(() {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SignUpPage()),
+      );
+    });
+    return const Center(child: CircularProgressIndicator());
+  }
+
+  Widget _buildAuthScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ElevatedButton(
+            onPressed: _signInWithGoogle,
+            child: const Text('Sign in with Google'),
+          ),
+          ElevatedButton(
+            onPressed: _signInWithEmail,
+            child: const Text('Sign in with Email'),
+          ),
+          ElevatedButton(
+            onPressed: _signInWithPhone,
+            child: const Text('Sign in with Phone'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChannelScreen() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _channelController,
+                  decoration: InputDecoration(
+                    labelText: 'Channel Name',
+                    border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _addChannel,
-                  child: const Text('Add'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('channels').snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: _addChannel,
+                child: const Text('Add'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('channels').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                      child: Text('No channels found.'),
-                    );
-                  }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text('No channels found.'),
+                  );
+                }
 
-                  final channels = snapshot.data!.docs;
+                final channels = snapshot.data!.docs;
 
-                  return ListView.builder(
-                    itemCount: channels.length,
-                    itemBuilder: (context, index) {
-                      final channel = channels[index];
-                      final channelName = channel['name'];
+                return ListView.builder(
+                  itemCount: channels.length,
+                  itemBuilder: (context, index) {
+                    final channel = channels[index];
+                    final channelName = channel['name'];
 
-                      return FutureBuilder<DocumentSnapshot>(
-                        future: _firestore.collection('channels').doc(channel.id).get(),
-                        builder: (context, channelSnapshot) {
-                          if (channelSnapshot.connectionState == ConnectionState.waiting) {
-                            return const CircularProgressIndicator();
-                          }
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: _firestore.collection('channels').doc(channel.id).get(),
+                      builder: (context, channelSnapshot) {
+                        if (channelSnapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        }
 
-                          final channelData = channelSnapshot.data?.data() as Map<String, dynamic>;
-                          final subscribedUsers = List<int>.from(channelData?['users'] ?? []);
+                        final channelData = channelSnapshot.data?.data() as Map<String, dynamic>;
+                        final subscribedUsers = List<String>.from(channelData?['users'] ?? []);
 
-                          if (!subscribedUsers.contains(USERID)) {
-                            return ListTile(
-                              title: Text(channelName),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.notifications_active),
-                                    onPressed: () {
-                                      _subscribeToChannel(channelName);
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete),
-                                    onPressed: () {
-                                      _removeChannel(channel.id);
-                                    },
-                                  ),
-                                ]
-                              ),
-                            );
-                          }
-
+                        if (!subscribedUsers.contains(_auth.currentUser!.uid)) {
                           return ListTile(
                             title: Text(channelName),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.notifications_off),
+                                  icon: const Icon(Icons.notifications_active),
                                   onPressed: () {
-                                    _unsubscribeFromChannel(channelName);
+                                    _subscribeToChannel(channelName);
                                   },
                                 ),
                                 IconButton(
@@ -118,29 +143,50 @@ class _HomePageState extends State<HomePage> {
                                     _removeChannel(channel.id);
                                   },
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.chat),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ChatRoomPage(channelName: channelName),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
+                              ]
                             ),
                           );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
+                        }
+
+                        return ListTile(
+                          title: Text(channelName),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.notifications_off),
+                                onPressed: () {
+                                  _unsubscribeFromChannel(channelName);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () {
+                                  _removeChannel(channel.id);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.chat),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ChatRoomPage(channelName: channelName),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -213,7 +259,7 @@ class _HomePageState extends State<HomePage> {
         final channelId = querySnapshot.docs.first.id;
 
         await _firestore.collection('channels').doc(channelId).update({
-          'users': FieldValue.arrayUnion([USERID]) // Add user ID to the array
+          'users': FieldValue.arrayUnion([_auth.currentUser!.uid]) // Add user ID to the array
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -243,7 +289,7 @@ class _HomePageState extends State<HomePage> {
         final channelId = querySnapshot.docs.first.id;
 
         await _firestore.collection('channels').doc(channelId).update({
-          'users': FieldValue.arrayRemove([USERID]) // Remove user ID from the array
+          'users': FieldValue.arrayRemove([_auth.currentUser!.uid]) // Remove user ID from the array
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -260,5 +306,38 @@ class _HomePageState extends State<HomePage> {
         SnackBar(content: Text('Failed to unsubscribe from $channelName: $e')),
       );
     }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAuthentication googleAuth = await googleUser!.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      await _auth.signInWithCredential(credential);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to sign in with Google: $e')),
+      );
+    }
+  }
+
+  Future<void> _signInWithEmail() async {
+    // Implement email sign-in logic here
+  }
+
+  Future<void> _signInWithPhone() async {
+    // Implement phone sign-in logic here
+  }
+
+  Future<void> _signOut() async {
+    await _auth.signOut();
+    // Navigate to sign-in screen
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const SignUpPage()),
+    );
   }
 }

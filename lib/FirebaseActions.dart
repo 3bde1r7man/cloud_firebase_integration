@@ -128,10 +128,6 @@ class FirebaseActions {
   // Show a local notification
   void _showLocalNotification(RemoteMessage message) {
     RemoteNotification? notification = message.notification;
-    // AndroidNotification? android = message.notification?.android;
-    // print('message: $message');
-    // print('notification: $notification');
-    // print('android: $android');
     if (notification != null) {
       flutterLocalNotificationsPlugin.show(
         notification.hashCode,
@@ -153,8 +149,7 @@ class FirebaseActions {
   }
 }
 
-// Background message handler (required for background notifications)
-// @pragma('vm:entry-point')
+
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('Handling a background message: ${message.messageId}');
 }
