@@ -1,0 +1,50 @@
+name: Flutter CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - uses: actions/checkout@v3
+
+      # Set up Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.4'
+
+      # Install dependencies
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # Run tests
+      - name: Run Tests
+        run: flutter test
+
+      # Build Android app
+      - name: Build Android App
+        run: flutter build apk --release
+
+      # Install Firebase CLI
+      - name: Install Firebase Tools
+        run: npm install -g firebase-tools
+
+      # Authenticate to Firebase
+      - name: Authenticate to Firebase
+        uses: firebase/actions/[email protected]
+        with:
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: 'cloud-a4654'
+
+      # Distribute Android App via Firebase App Distribution
+      - name: Distribute Android App via Firebase App Distribution
+        run: |
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app 1:890847617998:android:950b056707d32bc07bc19f \
+            --groups "abdo"
