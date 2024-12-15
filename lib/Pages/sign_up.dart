@@ -1,4 +1,5 @@
 import 'package:cloud_firebase_integration/Pages/home_page.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -14,6 +15,7 @@ class SignUpPage extends StatefulWidget {
 
 class _SignUpPageState extends State<SignUpPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -31,9 +33,11 @@ class _SignUpPageState extends State<SignUpPage> {
       );
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Account Created Successfully")));
+      // Log first-time login event
+      await _logFirstTimeLogin("email_password");
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
+        MaterialPageRoute(builder: (context) => const HomePage()),
       );
     } catch (e) {
       ScaffoldMessenger.of(context)
@@ -55,9 +59,12 @@ class _SignUpPageState extends State<SignUpPage> {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-
-      await _auth.signInWithCredential(credential);
-
+      
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      if (userCredential.additionalUserInfo?.isNewUser ?? false) {
+        // This is a new user sign-up
+        await _logFirstTimeLogin("google");
+      }
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text("Signed In with Google")));
       Navigator.pushReplacement(
@@ -78,6 +85,7 @@ class _SignUpPageState extends State<SignUpPage> {
         await _auth.signInWithCredential(credential);
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Phone Verification Complete")));
+        
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomePage()),
@@ -196,6 +204,16 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
         ),
       ),
+    );
+  }
+
+  // Helper function to log first-time login event
+  Future<void> _logFirstTimeLogin(String type) async {
+    await analytics.logEvent(
+      name: 'first_time_login',
+      parameters: {
+        'login_method': type,
+      },
     );
   }
 }

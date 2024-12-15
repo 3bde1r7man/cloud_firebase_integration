@@ -1,3 +1,5 @@
+import 'package:cloud_firebase_integration/Pages/sign_up.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'home_page.dart';
@@ -14,6 +16,7 @@ class OTPPage extends StatefulWidget {
 class _OTPPageState extends State<OTPPage> {
   final TextEditingController _otpController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   void _verifyOTP() async {
     try {
@@ -28,7 +31,8 @@ class _OTPPageState extends State<OTPPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Phone Verification Complete")),
       );
-
+      // Log first-time login event
+      await _logFirstTimeLogin("phone");
       // Navigate to the home page
       Navigator.pushReplacement(
         context,
@@ -73,6 +77,15 @@ class _OTPPageState extends State<OTPPage> {
           ],
         ),
       ),
+    );
+  }
+  // Helper function to log first-time login event
+  Future<void> _logFirstTimeLogin(String type) async {
+    await analytics.logEvent(
+      name: 'first_time_login',
+      parameters: {
+        'login_method': type,
+      },
     );
   }
 }

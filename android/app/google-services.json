@@ -5,7 +5,7 @@
     "project_id": "cloud-a4654",
     "storage_bucket": "cloud-a4654.firebasestorage.app"
   },
-  "client": [
+  "client": [ 
     {
       "client_info": {
         "mobilesdk_app_id": "1:890847617998:android:950b056707d32bc07bc19f",
@@ -14,6 +14,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "890847617998-nrd7b9ul3lcfloc89tb7gga2ie95m9c5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.cloud_firebase_integration",
+            "certificate_hash": "a28dde2eac0524f51000f0a3bc1c464b96f6ac36"
+          }
+        },
         {
           "client_id": "890847617998-4uopvu38jtsf2evupfsvo0n9kc0n96un.apps.googleusercontent.com",
           "client_type": 3

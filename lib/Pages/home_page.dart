@@ -1,11 +1,12 @@
-import 'package:cloud_firebase_integration/Pages/sign_up.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'ChatRoomPage.dart'; // Import ChatRoomPage
-import 'package:cloud_firebase_integration/Pages/sign_up.dart'; // Import SignUpLoginPage
+import 'package:cloud_firebase_integration/Pages/sign_up.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,6 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _channelController = TextEditingController();
@@ -47,27 +49,6 @@ class _HomePageState extends State<HomePage> {
     return const Center(child: CircularProgressIndicator());
   }
 
-  Widget _buildAuthScreen() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ElevatedButton(
-            onPressed: _signInWithGoogle,
-            child: const Text('Sign in with Google'),
-          ),
-          ElevatedButton(
-            onPressed: _signInWithEmail,
-            child: const Text('Sign in with Email'),
-          ),
-          ElevatedButton(
-            onPressed: _signInWithPhone,
-            child: const Text('Sign in with Phone'),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildChannelScreen() {
     return Padding(
@@ -265,6 +246,7 @@ class _HomePageState extends State<HomePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Subscribed to $channelName and added user ID.')),
         );
+        await logUserSubscription('subscribed', channelName);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Channel $channelName not found in Firestore.')),
@@ -296,6 +278,7 @@ class _HomePageState extends State<HomePage> {
           SnackBar(
               content: Text('Unsubscribed from $channelName and removed user ID.')),
         );
+        await logUserSubscription('unsubscribed', channelName);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Channel $channelName not found in Firestore.')),
@@ -308,28 +291,18 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _signInWithGoogle() async {
+  Future<void> logUserSubscription(String status, String channel) async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      final GoogleSignInAuthentication googleAuth = await googleUser!.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      await analytics.logEvent(
+        name: 'user_subscription',
+        parameters: {
+          'subscription_status': status,
+          'channel_name': channel,
+        },
       );
-      await _auth.signInWithCredential(credential);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to sign in with Google: $e')),
-      );
+      print('Error logging user subscription event: $e');
     }
-  }
-
-  Future<void> _signInWithEmail() async {
-    // Implement email sign-in logic here
-  }
-
-  Future<void> _signInWithPhone() async {
-    // Implement phone sign-in logic here
   }
 
   Future<void> _signOut() async {
