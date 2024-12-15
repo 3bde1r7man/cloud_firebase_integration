@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'login.dart';
+import 'otp_page.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -87,10 +88,12 @@ class _SignUpPageState extends State<SignUpPage> {
             .showSnackBar(SnackBar(content: Text(e.message ?? "Error")));
       },
       codeSent: (String verificationId, int? resendToken) {
-        String smsCode = '123456'; // Collect this from user input
-        PhoneAuthCredential credential = PhoneAuthProvider.credential(
-            verificationId: verificationId, smsCode: smsCode);
-        _auth.signInWithCredential(credential);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OTPPage(verificationId: verificationId),
+          ),
+        );
       },
       codeAutoRetrievalTimeout: (String verificationId) {},
     );
