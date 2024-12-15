@@ -1,37 +1,39 @@
-name: Firebase App Distribution
+name: Flutter CI/CD
 
 on:
   push:
-    branches: [main] # Trigger on pushes to the main branch
-  pull_request:
-    branches: [main] # Trigger on pull requests to the main branch
+    branches:
+      - main
 
 jobs:
-  build-and-distribute:
-    name: Build and Distribute to Firebase App Distribution
+  build:
     runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.x' # Replace with your desired Flutter version
-          channel: 'stable'
 
-      - name: Install dependencies
+    steps:
+      # Checkout code
+      - uses: actions/checkout@v3
+
+      # Set up Flutter using the public action
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2  # Do not replace 'subosito'
+
+      # Install dependencies
+      - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Android App Bundle
-        run: flutter build appbundle --release
+      # Run tests
+      - name: Run Tests
+        run: flutter test
 
-      - name: Upload to Firebase App Distribution
+      # Build Android app
+      - name: Build Android App
+        run: flutter build apk --release
+
+      # Distribute Android App via Firebase App Distribution
+      - name: Distribute Android App via Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
+          appPath: build/app/outputs/flutter-apk/app-release.apk
           appId: 1:890847617998:android:950b056707d32bc07bc19f
-          token: 1//03GdWU5wPfazuCgYIARAAGAMSNwF-L9IrGce0utfOEgM_pH6o_tazdO-SgMk34oCUR-SmUiqqM8hn8gyUKkwA9XLopgFIeymbeGY
-          groups: abdo 
-          file: build/app/outputs/bundle/release/app-release.aab
-          releaseNotes: "Build ${{ github.run_number }} - Commit ${{ github.sha }}" # Optional release notes
+          serviceCredentialsJson: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: "abdo"
