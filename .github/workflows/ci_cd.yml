@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-distribute:
     name: Build and Distribute to Firebase App Distribution
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-java@v3
@@ -28,7 +28,7 @@ jobs:
         run: flutter build appbundle --release
 
       - name: Upload to Firebase App Distribution
-        uses: wzieba/Firebase-Distribution-Github-Action@v2
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: 1:890847617998:android:950b056707d32bc07bc19f
           token: 1//03GdWU5wPfazuCgYIARAAGAMSNwF-L9IrGce0utfOEgM_pH6o_tazdO-SgMk34oCUR-SmUiqqM8hn8gyUKkwA9XLopgFIeymbeGY
