@@ -1,50 +1,37 @@
-name: Flutter CI/CD
+name: Firebase App Distribution
 
 on:
   push:
-    branches:
-      - main
+    branches: [main] # Trigger on pushes to the main branch
+  pull_request:
+    branches: [main] # Trigger on pull requests to the main branch
 
 jobs:
-  build:
+  build-and-distribute:
+    name: Build and Distribute to Firebase App Distribution
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout code
       - uses: actions/checkout@v3
-
-      # Set up Flutter
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/setup-java@v3
         with:
-          flutter-version: '3.24.4'
+          distribution: 'zulu'
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x' # Replace with your desired Flutter version
+          channel: 'stable'
 
-      # Install dependencies
-      - name: Install Dependencies
+      - name: Install dependencies
         run: flutter pub get
 
-      # Run tests
-      - name: Run Tests
-        run: flutter test
+      - name: Build Android App Bundle
+        run: flutter build appbundle --release
 
-      # Build Android app
-      - name: Build Android App
-        run: flutter build apk --release
-
-      # Install Firebase CLI
-      - name: Install Firebase Tools
-        run: npm install -g firebase-tools
-
-      # Authenticate to Firebase
-      - name: Authenticate to Firebase
-        uses: firebase/actions/[email protected]
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v2
         with:
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-          projectId: 'cloud-a4654'
-
-      # Distribute Android App via Firebase App Distribution
-      - name: Distribute Android App via Firebase App Distribution
-        run: |
-          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
-            --app 1:890847617998:android:950b056707d32bc07bc19f \
-            --groups "abdo"
+          appId: 1:890847617998:android:950b056707d32bc07bc19f
+          token: 1//03GdWU5wPfazuCgYIARAAGAMSNwF-L9IrGce0utfOEgM_pH6o_tazdO-SgMk34oCUR-SmUiqqM8hn8gyUKkwA9XLopgFIeymbeGY
+          groups: abdo 
+          file: build/app/outputs/bundle/release/app-release.aab
+          releaseNotes: "Build ${{ github.run_number }} - Commit ${{ github.sha }}" # Optional release notes
