@@ -19,6 +19,9 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
+  bool _showEmailFields = false;
+  bool _showPhoneFields = false;
+
   // Email/Password Sign-Up
   Future<void> _signUpWithEmailPassword() async {
     try {
@@ -28,7 +31,6 @@ class _SignUpPageState extends State<SignUpPage> {
       );
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Account Created Successfully")));
-      // navigate to home page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -58,7 +60,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text("Signed In with Google")));
-      // navigate to home page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
@@ -77,7 +78,6 @@ class _SignUpPageState extends State<SignUpPage> {
         await _auth.signInWithCredential(credential);
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Phone Verification Complete")));
-        // navigate to home page
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomePage()),
@@ -98,53 +98,102 @@ class _SignUpPageState extends State<SignUpPage> {
       codeAutoRetrievalTimeout: (String verificationId) {},
     );
   }
-  
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Sign Up")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: "Email"),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Email Fields
+                if (_showEmailFields) ...[
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: "Email"),
+                  ),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: "Password"),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _signUpWithEmailPassword,
+                    child: const Text("Sign Up with Email/Password"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _showEmailFields = false;
+                      });
+                    },
+                    child: const Text("Back"),
+                  ),
+                ],
+
+                // Phone Number Fields
+                if (_showPhoneFields) ...[
+                  TextField(
+                    controller: _phoneController,
+                    decoration: const InputDecoration(labelText: "Phone Number"),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _signUpWithPhoneNumber,
+                    child: const Text("Sign Up with Phone Number"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _showPhoneFields = false;
+                      });
+                    },
+                    child: const Text("Back"),
+                  ),
+                ],
+
+                // Initial Options
+                if (!_showEmailFields && !_showPhoneFields) ...[
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _showEmailFields = true;
+                      });
+                    },
+                    child: const Text("Sign Up with Email/Password"),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _signInWithGoogle,
+                    icon: const Icon(Icons.login),
+                    label: const Text("Sign Up with Google"),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _showPhoneFields = true;
+                      });
+                    },
+                    child: const Text("Sign Up with Phone Number"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LoginPage()),
+                      );
+                    },
+                    child: const Text("Already have an account? Log in"),
+                  ),
+                ],
+              ],
             ),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: "Password"),
-            ),
-            TextField(
-              controller: _phoneController,
-              decoration: const InputDecoration(labelText: "Phone Number"),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _signUpWithEmailPassword,
-              child: const Text("Sign Up with Email/Password"),
-            ),
-            ElevatedButton.icon(
-              onPressed: _signInWithGoogle,
-              icon: const Icon(Icons.login),
-              label: const Text("Sign Up with Google"),
-            ),
-            ElevatedButton(
-              onPressed: _signUpWithPhoneNumber,
-              child: const Text("Sign Up with Phone Number"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                );
-              },
-              child: const Text("Already have an account? Log in"),
-            ),
-          ],
+          ),
         ),
       ),
     );

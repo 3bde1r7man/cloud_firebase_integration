@@ -18,6 +18,9 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
+  bool _showEmailFields = false;
+  bool _showPhoneFields = false;
+
   // Email/Password Login
   Future<void> _loginWithEmailPassword() async {
     try {
@@ -27,7 +30,6 @@ class _LoginPageState extends State<LoginPage> {
       );
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text("Login Successful")));
-      // navigate to home page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
@@ -46,13 +48,17 @@ class _LoginPageState extends State<LoginPage> {
         await _auth.signInWithCredential(credential);
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Phone Verification Complete")));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
       },
       verificationFailed: (FirebaseAuthException e) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.message ?? "Error")));
       },
       codeSent: (String verificationId, int? resendToken) {
-        String smsCode = '123456'; // Collect this from user input
+        String smsCode = '123456'; // Simulated placeholder
         PhoneAuthCredential credential = PhoneAuthProvider.credential(
             verificationId: verificationId, smsCode: smsCode);
         _auth.signInWithCredential(credential);
@@ -80,7 +86,6 @@ class _LoginPageState extends State<LoginPage> {
 
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text("Signed In with Google")));
-      // navigate to home page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
@@ -95,47 +100,98 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Login")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: "Email"),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Email/Password Login Fields
+                if (_showEmailFields) ...[
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: "Email"),
+                  ),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: "Password"),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _loginWithEmailPassword,
+                    child: const Text("Login with Email/Password"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _showEmailFields = false;
+                      });
+                    },
+                    child: const Text("Back"),
+                  ),
+                ],
+
+                // Phone Number Login Fields
+                if (_showPhoneFields) ...[
+                  TextField(
+                    controller: _phoneController,
+                    decoration: const InputDecoration(labelText: "Phone Number"),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _loginWithPhoneNumber,
+                    child: const Text("Login with Phone Number"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _showPhoneFields = false;
+                      });
+                    },
+                    child: const Text("Back"),
+                  ),
+                ],
+
+                // Main Login Options
+                if (!_showEmailFields && !_showPhoneFields) ...[
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _showEmailFields = true;
+                      });
+                    },
+                    child: const Text("Login with Email/Password"),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _signInWithGoogle,
+                    icon: const Icon(Icons.login),
+                    label: const Text("Login with Google"),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _showPhoneFields = true;
+                      });
+                    },
+                    child: const Text("Login with Phone Number"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SignUpPage()),
+                      );
+                    },
+                    child: const Text("Don't have an account? Sign Up"),
+                  ),
+                ],
+              ],
             ),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: "Password"),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _signInWithGoogle,
-              child: const Text("Sign In with Google"),
-            ),
-            ElevatedButton(
-              onPressed: _loginWithEmailPassword,
-              child: const Text("Login with Email/Password"),
-            ),
-            TextField(
-              controller: _phoneController,
-              decoration: const InputDecoration(labelText: "Phone Number"),
-              keyboardType: TextInputType.phone,
-            ),
-            ElevatedButton(
-              onPressed: _loginWithPhoneNumber,
-              child: const Text("Login with Phone Number"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SignUpPage()),
-                );
-              },
-              child: const Text("Don't have an account? Sign Up"),
-            ),
-          ],
+          ),
         ),
       ),
     );
