@@ -34,12 +34,11 @@ jobs:
       - name: Build Android App
         run: flutter build apk --release
       
-      # Commented as it require link our app to google play account
       # Distribute Android App via Firebase App Distribution
-      # - name: Distribute Android App via Firebase App Distribution
-      #   uses: wzieba/Firebase-Distribution-Github-Action@v1
-      #   with:
-      #     appPath: build/app/outputs/flutter-apk/app-release.apk
-      #     appId: 1:890847617998:android:950b056707d32bc07bc19f
-      #     serviceCredentialsJson: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      #     groups: "abdo"
+      - name: Upload APK to Firebase App Distribution
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/service-account.json
+          export GOOGLE_APPLICATION_CREDENTIALS=$HOME/service-account.json
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app ${{ secrets.FIREBASE_APP_ID }} \
+            --debug
