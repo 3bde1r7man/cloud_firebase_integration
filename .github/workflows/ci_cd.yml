@@ -1,44 +1,57 @@
 name: Flutter CI/CD
 
+
 on:
   push:
     branches:
-      - main
-
+      - main  
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
+    env:
+      FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+      GOOGLE_APPLICATION_CREDENTIALS: $HOME/service-account.json
 
     steps:
-      # Checkout code
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: '17'
+    # Step 1: Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
 
+    # Step 2: Set up Flutter
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.4'
 
-      # Set up Flutter using the public action
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2  # Do not replace 'subosito'
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: flutter pub get
 
-      # Install dependencies
-      - name: Install Dependencies
-        run: flutter pub get
+    # Step 4: Install Firebase CLI
+    - name: Install Firebase CLI
+      run: |
+        curl -sL https://firebase.tools | bash
+        # Make sure it's available in the path
+        export PATH=$PATH:/usr/local/bin
+        firebase --version
 
-      # Run tests
-      - name: Run Tests
-        run: flutter test
+    # Step 5: Build APK
+    - name: Build APK
+      run: flutter build apk --release
 
-      # Build Android app
-      - name: Build Android App
-        run: flutter build apk --release
-      
-      # Distribute Android App via Firebase App Distribution
-      - name: Upload APK to Firebase App Distribution
-        run: |
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/service-account.json
-          export GOOGLE_APPLICATION_CREDENTIALS=$HOME/service-account.json
-          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
-            --app ${{ secrets.FIREBASE_APP_ID }} \
-            --debug
+    # Step 6: Authenticate with Firebase using the service account key
+    - name: Authenticate with Firebase CLI
+      run: |
+        echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > $HOME/service-account.json
+        export GOOGLE_APPLICATION_CREDENTIALS=$HOME/service-account.json
+
+    # Step 7: Upload APK to Firebase App Distribution
+    - name: Upload APK to Firebase App Distribution
+      run: |
+        echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/service-account.json
+        export GOOGLE_APPLICATION_CREDENTIALS=$HOME/service-account.json
+        firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+          --app ${{ secrets.FIREBASE_APP_ID }} \
+          --release-notes "Automated build from GitHub Actions" \
+          --debug
